@@ -29,8 +29,7 @@ The LibPSF2.jl implementation is far from optimal in terms of speed.  There is r
 
 LibPSF2.jl does not currently support all the functionnality of the original libpsf library.  A few features known to be missing are listed below:
 
- - Does not read scalar values.
- - Does not support reading of non-windowed sweep data.
+ - Does not support `StructVector`, nor `VectorStruct` (`m_invertstruct`).
 
 ### Compatibility
 
