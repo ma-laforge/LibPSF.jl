@@ -1,4 +1,4 @@
-#LibPSF: Main deserialize functions
+#LibPSF2: Main deserialize functions
 #-------------------------------------------------------------------------------
 
 #==Deserialize functions
@@ -120,19 +120,6 @@ function deserialize(r::DataReader, ::Type{TraceIndex})
 	return nothing
 end
 
-#StructDef::deserialize
-function deserialize(r::DataReader, s::StructDef)
-	s._datasize = 0
-	while true
-		child = deserialize_child(r, StructDef)
-		if nothing == child; break; end
-		child::DataTypeDef #throw error if not right type
-		push!(s.childlist, child)
-		s._datasize += child.datasize
-	end
-	return s
-end
-
 #DataTypeDef::deserialize
 function deserialize(r::DataReader, child::DataTypeDef)
 	deserialize_chunk(r, DataTypeDef)
@@ -145,11 +132,27 @@ function deserialize(r::DataReader, child::DataTypeDef)
 		child.structdef = StructDef()
 		deserialize(r, child.structdef)
 		child._datasize = child.structdef._datasize
+#println(); @show child.name
+#for e in child.structdef.childlist; (@show e); end
 	else
 		child._datasize = psfdata_size(child.datatypeid)
 	end
 	child.properties = deserialize(r, PropertyBlock)
 	return child
+end
+
+#StructDef::deserialize
+function deserialize(r::DataReader, s::StructDef)
+	s._datasize = 0
+	while true
+		child = deserialize_child(r, StructDef)
+		if nothing == child; break; end
+		#BUG?: Need to re-assign - otherwise assertion executes before above if stmt.
+		child = child::DataTypeDef #throw error if not right type
+		push!(s.childlist, child)
+		s._datasize += child._datasize
+	end
+	return s
 end
 
 #DataTypeRef::deserialize
@@ -159,6 +162,34 @@ function deserialize(r::DataReader, child::DataTypeRef)
 	child.name = deserialize(r, ASCIIString)
 	child.datatypeid = read(r, Int32)
 	child.properties = deserialize(r, PropertyBlock)
+	return child
+end
+
+#Struct::deserialize
+function deserialize(r::DataReader, def::StructDef, ::Type{Struct})
+	result = StructDict()
+	for elemdef in def.childlist
+		T = psfdata_type(elemdef)
+		val = read(r, T)
+		result[elemdef.name] = val
+	end
+	return result
+end
+
+function deserialize(r::DataReader, child::NonSweepValue)
+	deserialize_chunk(r, NonSweepValue)
+	child.id = read(r, Int32)
+	child.name = deserialize(r, ASCIIString)
+	child.valuetypeid = read(r, Int32)
+
+	def = get_typedef(get(r.types), child.valuetypeid)
+		T = psfdata_type(def)
+	if T <: Struct
+		child.value = deserialize(r, def.structdef, Struct)
+	else
+		child.value = deserialize(r, T)
+	end
+	child.propblock = deserialize(r, PropertyBlock)
 	return child
 end
 
@@ -333,7 +364,7 @@ function deserialize_file(r::DataReader)
 #display(sections)
 
 	#Read in header:
-	r.props = deserialize(r, sections[SECTION_HEADER])
+	r.properties = deserialize(r, sections[SECTION_HEADER])
 
 	#Read types:
 	section = get(sections, SECTION_TYPE, nothing)
@@ -346,25 +377,23 @@ function deserialize_file(r::DataReader)
 	sweeps = section
 	if section != nothing
 		r.sweeps = deserialize(r, section)
-#display(r.sweeps)
 	end
 
 	#Read traces:
 	section = get(sections, SECTION_TRACE, nothing)
 	if section != nothing
 		r.traces = deserialize(r, section)
-#display(r.traces)
 	end
 
 	section = get(sections, SECTION_VALUE, nothing)
 	if section != nothing
 		if sweeps != nothing
-			windowsize = get(r.props, "PSF window size", 0)
+			windowsize = get(r.properties, "PSF window size", 0)
 			section = ValueSectionSweep(section.info, windowsize)
 			r.sweepvalues = deserialize(r, section)
 		else
 			section = ValueSectionNonSweep(section.info)
-			nonsweepvalues = deserialize(r, section)
+			r.nonsweepvalues = deserialize(r, section)
 		end
 	end
 end

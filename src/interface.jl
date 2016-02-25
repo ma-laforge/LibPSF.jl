@@ -1,4 +1,4 @@
-#LibPSF: Main interface
+#LibPSF2: Main interface
 #-------------------------------------------------------------------------------
 
 
@@ -18,15 +18,15 @@
 
 #PSFDataSet::is_swept
 is_swept(reader::DataReader) =
-	get(reader.props, "PSF sweeps", 0) > 0
+	get(reader.properties, "PSF sweeps", 0) > 0
 
 #PSFDataSet::get_nsweeps
 get_nsweeps(reader::DataReader) = #Throws error if no sweep
-	get(reader.props, "PSF sweeps")
+	get(reader.properties, "PSF sweeps")
 
 #PSFDataSet::get_sweep_npoints
 get_sweep_npoints(reader::DataReader) = #Throws error if no npoints
-	get(reader.props, "PSF sweep points")
+	get(reader.properties, "PSF sweep points")
 
 #SweepSection::get_names
 function get_names(section::SweepSection)
@@ -60,11 +60,21 @@ function get_names(section::TraceSection)
 	return result
 end
 
+#Container::get_names
+function get_names(v::ValueSectionNonSweep)
+	result = ASCIIString[]
+	for child in v.childlist
+		push!(result, child.name)
+	end
+	return result
+end
+
 #PSFDataSet::get_signal_names/PSFFile::get_names
 function get_signal_names(reader::DataReader)
 	if !isnull(reader.traces)
 		get_names(get(reader.traces))
-#	elseif !isnull(reader.nonsweepvalues)
+	elseif !isnull(reader.nonsweepvalues)
+		get_names(get(reader.nonsweepvalues))
 	else
 		throw("No names found.")
 	end
@@ -83,7 +93,7 @@ end
 #ValueSectionSweep::get_values
 function get_values(reader::DataReader, filter::ChunkFilter)
 	value = new_value(get(reader.sweepvalues))
-	n = reader.props["PSF sweep points"]
+	n = reader.properties["PSF sweep points"]
 	windowoffset = 0
 
 	#TODO: move seek inside deserialize??
@@ -103,12 +113,6 @@ function get_sweep_values(reader::DataReader)
 	#No need to clear values (v will go out of scope)
 	return v.paramvalues
 end
-
-#GroupDef::get_child / GroupDef::get_child_index
-get_child(grp::GroupDef, name::ASCIIString) = grp.childlist[grp.namemap[name]]
-
-#Container::get_child
-get_child(section::TraceSection, name::ASCIIString) = section.childlist[section.namemap[name]]
 
 #TraceSection::get_trace_by_name
 function get_trace_by_name(section::TraceSection, signame::ASCIIString)
@@ -141,10 +145,12 @@ end
 #PSFDataSet::get_signal_scalar / PSFFile::get_value
 #Main code from: ValueSectionNonSweep::get_value
 function get_signal_scalar(reader::DataReader, signame::ASCIIString)
-#	if isnull(reader.nonsweepvalues)
+	if isnull(reader.nonsweepvalues)
 		throw("No non-sweep values")
-#	end
-#	return dynamic_cast<const NonSweepValue &>(get_child(name)).get_value();
+	end
+	#Assert type:
+	val = get_child(get(reader.nonsweepvalues), signame)::NonSweepValue
+	return val.value
 end
 
 #PSFDataSet::get_signal

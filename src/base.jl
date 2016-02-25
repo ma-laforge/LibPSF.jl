@@ -1,4 +1,4 @@
-#LibPSF: Base definitions
+#LibPSF2: Base definitions
 #-------------------------------------------------------------------------------
 
 #=TODO:
@@ -38,6 +38,11 @@ DE(v::Int) = DE{v}();
 
 #Dictionary used to describe PSF properties:
 typealias PropDict Dict{ASCIIString, Any}
+
+abstract Struct #Dummy type used to dispatch function calls
+
+#Structure used to return Struct data.
+typealias StructDict Dict{ASCIIString, Any}
 
 #Basic value mapping types:
 typealias TraceIDOffsetMap Dict{Int, Int}
@@ -106,6 +111,17 @@ type DataTypeRef <: Chunk
 	psf::PSFFile #Is this actually needed???
 end
 DataTypeRef(psf::PSFFile) = DataTypeRef(0, "", 0, PropertyBlock(), StructDef(0), psf)
+
+type NonSweepValue <: Chunk
+	id::Int
+	name::ASCIIString
+	valuetypeid::Int
+	value::Any
+	propblock::PropertyBlock
+	psf::PSFFile #Is this actually needed???
+end
+NonSweepValue(psf::PSFFile) = NonSweepValue(0, "", 0, 0, PropertyBlock(), psf)
+
 
 #PSF groups (Collects PSF sweep values.  Think each group represents a sweep.)
 #-------------------------------------------------------------------------------
@@ -183,19 +199,17 @@ ValueSectionSweep() = ValueSectionSweep(SectionInfo(), 0)
 type DataReader
 	io::IOStream
 	filepath::AbstractString #Informative only
-	props::PropDict
+	properties::PropDict
 	types::Nullable{TypeSection}
 	sweeps::Nullable{SweepSection}
 	traces::Nullable{TraceSection}
 	sweepvalues::Nullable{ValueSectionSweep}
-#	nonsweepvalues::Nullable{ValueSectionNonSweep}
-#	nsig::Int #Not currently used
-#	npts::Int #Not currently used
+	nonsweepvalues::Nullable{ValueSectionNonSweep}
 	filesize::Int
 end
 function DataReader(io::IOStream, filepath::AbstractString="")
 	return DataReader(io, filepath, PropDict(), nothing, nothing,
-		nothing, nothing, 0)
+		nothing, nothing, nothing, 0)
 end
 
 #=PSFDataset: Main object (Original Hierarchy)
@@ -221,7 +235,7 @@ IncorrectChunk(chunktype::Integer) = "Incorrect Chunk: $chunktype"
 ===============================================================================#
 
 #psfdata_type: Returns actual data type
-#Adapted from: DataTypeRef::new_vector()
+#Adapted from: DataTypeDef::new_vector()
 function psfdata_type(datatypeid::Int)
 #@show :psfdata_type, datatypeid
 	if TYPEID_INT8 == datatypeid
@@ -232,8 +246,8 @@ function psfdata_type(datatypeid::Int)
 		return Float64
 	elseif TYPEID_COMPLEXDOUBLE == datatypeid
 		return Complex{Float64}
-#	elseif TYPEID_STRUCT == datatypeid
-		#TODO
+	elseif TYPEID_STRUCT == datatypeid
+		return Struct
 	else
 		throw("Unknown type: $datatypeid")
 	end
@@ -251,6 +265,7 @@ end
 #chunkid: Usually defined as "type" in types <: Chunk
 chunkid(::Type{DataTypeDef}) = 16
 chunkid(::Type{DataTypeRef}) = 16
+chunkid(::Type{NonSweepValue}) = 16
 chunkid(::Type{GroupDef}) = 17
 chunkid(::Type{Index}) = 19
 chunkid(::Type{TraceIndex}) = 19
@@ -273,25 +288,13 @@ end
 propertytype(chunktype::Integer) = propertytype(Int(chunktype))
 
 
+ischunk{T}(chunktype::Int, ::Type{T}) = throw("Not supported: ischunk($chunktype, $T)")
 ischunk{T<:Chunk}(chunktype::Int, ::Type{T}) = chunkid(T)==chunktype
 #static Property::ischunk
 function ischunk(chunktype::Int, ::Type{Property})
 	return (chunktype >= 33) && (chunktype <= 35)
 end
 ischunk{T}(chunktype::Integer, ::Type{T}) = ischunk(Int(chunktype), T)
-
-#DataTypeRef-based operations
-#-------------------------------------------------------------------------------
-#DataTypeRef::get_datatype()
-get_datatype(ref::DataTypeRef, tsection::TypeSection) =
-	tsection.idmap[ref.datatypeid]::DataTypeDef #throw exception if not correct type
-
-#Returns actual data type
-psfdata_type(ref::DataTypeRef, tsection::TypeSection) =
-	psfdata_type(get_datatype(ref, tsection))
-
-datasize(ref::DataTypeRef, tsection::TypeSection) =
-	get_datatype(ref, tsection)._datasize
 
 
 #==Factories
@@ -345,6 +348,11 @@ end
 
 #ValueSectionNonSweep::child_factory
 function child_factory(chunktype::Int, ::Type{ValueSectionNonSweep})
+	if ischunk(chunktype, NonSweepValue)
+		return NonSweepValue(PSFFile(ValueSectionNonSweep))
+	else
+		throw(IncorrectChunk(chunktype))
+	end
 end
 
 #GroupDef::child_factory
@@ -356,19 +364,50 @@ function child_factory(chunktype::Int, ::Type{GroupDef})
 	end
 end
 
+#StructDef::child_factory
+function child_factory(chunktype::Int, ::Type{StructDef})
+	if ischunk(chunktype, DataTypeDef)
+		return DataTypeDef()
+	elseif 18 == chunktype
+		return nothing
+	else
+		throw(IncorrectChunk(chunktype))
+	end
+end
+
 child_factory{T}(chunktype::Int, ::Type{T}) = throw(ArgumentError("child_factory($chunktype, $T)"))
 child_factory{T}(chunktype::Integer, ::Type{T}) = child_factory(Int(chunktype), T)
 
-#DataTypeDef-based operations
-#-------------------------------------------------------------------------------
-#DataTypeDef::new_vector
-new_vector(def::DataTypeDef) = psfdata_type(def)[] #Return empty array
+
+#==Accessors
+===============================================================================#
 
 #DataTypeRef-based operations
 #-------------------------------------------------------------------------------
-#DataTypeRef::new_vector()
-new_vector(ref::DataTypeRef, tsection::TypeSection) =
-	new_vector(get_datatype(ref, tsection))
+#DataTypeRef::get_datatype()
+get_datatype(ref::DataTypeRef, tsection::TypeSection) =
+	tsection.idmap[ref.datatypeid]::DataTypeDef #throw exception if not correct type
+
+#Returns actual data type
+psfdata_type(ref::DataTypeRef, tsection::TypeSection) =
+	psfdata_type(get_datatype(ref, tsection))
+
+datasize(ref::DataTypeRef, tsection::TypeSection) =
+	get_datatype(ref, tsection)._datasize
+
+#GroupDef::get_child / GroupDef::get_child_index
+get_child(grp::GroupDef, name::ASCIIString) = grp.childlist[grp.namemap[name]]
+
+#Container::get_child
+#TraceSection/TypeSection
+get_child(section::IndexedSection, name::ASCIIString) = section.childlist[section.namemap[name]]
+
+#IndexedContainer::get_child
+get_child(section::IndexedSection, id::Int) = section.idmap[id]
+
+function get_typedef(section::TypeSection, id::Int)
+	return def = get_child(section, id)::DataTypeDef
+end
 
 
 #==File validation functions
@@ -399,7 +438,6 @@ end
 #GET_DOUBLE(dest, buf)... but keeps value as a float:
 Base.read(r::DataReader, ::Type{Float64}) = reinterpret(Float64, ntoh(read(r.io, UInt64)))
 Base.read(r::DataReader, ::Type{Complex{Float64}}) = Complex{Float64}(read(r, Float64),read(r, Float64))
-#TODO: read(r, Struct)...
 
 
 #==Generate friendly show functions
