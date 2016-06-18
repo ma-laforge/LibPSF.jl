@@ -1,15 +1,13 @@
 #Test code
 #-------------------------------------------------------------------------------
 
-using LibPSF2
-import LibPSF #To get file data
-
-#No real test code yet... just demonstrate use:
+using LibPSF
+include("importLibPSFC.jl") #To access file data
 
 
 #==Input data
 ===============================================================================#
-sampledata(filename::AbstractString) = joinpath(LibPSF.rootpath, "core/data", filename)
+sampledata(filename::AbstractString) = joinpath(LibPSFC.rootpath, "core/data", filename)
 sepline = "---------------------------------------------------------------------"
 printsep() = println(sepline)
 
@@ -19,7 +17,7 @@ printsep() = println(sepline)
 function testfileaccess(path::AbstractString)
 	println("\n\nfile: $path")
 	printsep()
-	reader = LibPSF2._open(path)
+	reader = LibPSF._open(path)
 	display(reader.properties)
 	@show _names = names(reader)
 
@@ -44,11 +42,11 @@ signame = "INN"
 
 println("\nOpen $filename:")
 printsep()
-reader = LibPSF2._open(sampledata(filename))
+reader = LibPSF._open(sampledata(filename))
 display(reader.properties)
 
 println("\nRead in sweep info:")
-@show LibPSF2.get_sweep_param_names(reader)
+@show LibPSF.get_sweep_param_names(reader)
 t = readsweep(reader)
 @show t
 
