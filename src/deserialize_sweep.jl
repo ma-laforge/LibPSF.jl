@@ -1,4 +1,4 @@
-#LibPSF2: Tools to read in values.
+#LibPSF: Tools to read in values.
 #-------------------------------------------------------------------------------
 
 

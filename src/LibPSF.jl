@@ -1,6 +1,6 @@
-#LibPSF2: A pure Julia implementation of LibPSF
+#LibPSF: A pure Julia implementation of LibPSF
 #-------------------------------------------------------------------------------
-module LibPSF2
+module LibPSF
 
 include("base.jl")
 include("deserialize.jl")
@@ -37,5 +37,5 @@ export readsweep
 	Base.read(reader::DataReader, signame::ASCIIString)
 ==#
 
-end #LibPSF2
+end #LibPSF
 #Last line

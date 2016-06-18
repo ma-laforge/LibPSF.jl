@@ -1,4 +1,4 @@
-#LibPSF2: Base definitions
+#LibPSF: Base definitions
 #-------------------------------------------------------------------------------
 
 #=TODO:

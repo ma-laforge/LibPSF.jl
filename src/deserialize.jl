@@ -1,4 +1,4 @@
-#LibPSF2: Main deserialize functions
+#LibPSF: Main deserialize functions
 #-------------------------------------------------------------------------------
 
 #==Deserialize functions
