@@ -11,11 +11,11 @@
 type SweepValue{ID} #ID: identifies type of sweep (windowed/simple)
 	vectorlist::Vector{Vector}
 	id::Int
-	name::ASCIIString
+	name::String
 	linktypeid::Int
 	paramvalues::Vector
 end
-call{ID}(::Type{SweepValue{ID}}) = SweepValue{ID}(Vector[], 0, "", 0, [])
+(::Type{SweepValue{ID}}){ID}() = SweepValue{ID}(Vector[], 0, "", 0, [])
 
 typealias SweepValueWindowed SweepValue{:WND}
 typealias SweepValueSimple SweepValue{:SIMPLE}

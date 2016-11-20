@@ -37,17 +37,17 @@ immutable DE{T}; end; #Dispatchable element
 DE(v::Int) = DE{v}();
 
 #Dictionary used to describe PSF properties:
-typealias PropDict Dict{ASCIIString, Any}
+typealias PropDict Dict{String, Any}
 
 abstract Struct #Dummy type used to dispatch function calls
 
 #Structure used to return Struct data.
-typealias StructDict Dict{ASCIIString, Any}
+typealias StructDict Dict{String, Any}
 
 #Basic value mapping types:
 typealias TraceIDOffsetMap Dict{Int, Int}
-typealias NameIdMap Dict{ASCIIString, Int} #Maps string to array index
-typealias NameIndexMap Dict{ASCIIString, Int} #Maps string to array index ?REDUNDANT
+typealias NameIdMap Dict{String, Int} #Maps string to array index
+typealias NameIndexMap Dict{String, Int} #Maps string to array index ?REDUNDANT
 
 abstract Chunk #Basically means "Element" of a PSF file
 abstract Container #<: Chunk #Has a Vector{Chunk}.
@@ -68,7 +68,7 @@ type ZeroPad <: Chunk
 end
 
 type Property <: Chunk
-	name::ASCIIString
+	name::String
 	value::Any #Scalar value
 end
 Property() = Property("", nothing)
@@ -86,7 +86,7 @@ PropertyBlock() = PropertyBlock(PropDict())
 #Describes/names a data type:
 type DataTypeDef <: Chunk
 	id::Int
-	name::ASCIIString
+	name::String
 	datatypeid::Int
 	properties::PropertyBlock
 	structdef #::StructDef - dont' know how to make cyclical types
@@ -104,7 +104,7 @@ StructDef() = StructDef(0)
 #Points to a definition of a data type:
 type DataTypeRef <: Chunk
 	id::Int
-	name::ASCIIString
+	name::String
 	datatypeid::Int
 	properties::PropertyBlock
 	structdef::StructDef
@@ -114,7 +114,7 @@ DataTypeRef(psf::PSFFile) = DataTypeRef(0, "", 0, PropertyBlock(), StructDef(0),
 
 type NonSweepValue <: Chunk
 	id::Int
-	name::ASCIIString
+	name::String
 	valuetypeid::Int
 	value::Any
 	propblock::PropertyBlock
@@ -127,7 +127,7 @@ NonSweepValue(psf::PSFFile) = NonSweepValue(0, "", 0, 0, PropertyBlock(), psf)
 #-------------------------------------------------------------------------------
 type GroupDef <: Chunk
 	id::Int
-	name::ASCIIString
+	name::String
 	nchildren::Int
 	childlist::Vector{DataTypeRef}
 	indexmap::TraceIDOffsetMap
@@ -150,19 +150,19 @@ immutable SimpleSection{ID} <: Section #Called "SimpleContainer"
 	info::SectionInfo
 	childlist::Vector{Chunk}
 end
-
-call{ID}(::Type{SimpleSection{ID}}, info::SectionInfo) =
+(::Type{SimpleSection{ID}}){ID}(info::SectionInfo) =
 	SimpleSection{ID}(info, Chunk[])
-call{ID}(::Type{SimpleSection{ID}}) = SimpleSection{ID}(SectionInfo())
+(::Type{SimpleSection{ID}}){ID}() = SimpleSection{ID}(SectionInfo(), Chunk[])
+
 immutable IndexedSection{ID} <: Section #Called "IndexedContainer"
 	info::SectionInfo
 	childlist::Vector{Chunk}
 	idmap::IdMap
 	namemap::NameIndexMap
 end
-call{ID}(::Type{IndexedSection{ID}}, info::SectionInfo) =
+(::Type{IndexedSection{ID}}){ID}(info::SectionInfo) =
 	IndexedSection{ID}(info, Chunk[], IdMap(), NameIndexMap())
-call{ID}(::Type{IndexedSection{ID}}) = IndexedSection{ID}(SectionInfo())
+(::Type{IndexedSection{ID}}){ID}() = IndexedSection{ID}(SectionInfo())
 
 typealias HeaderSection SimpleSection{SECTION_HEADER}
 typealias SweepSection SimpleSection{SECTION_SWEEP}
@@ -227,7 +227,7 @@ end
 PSFFile{T<:Section}(::Type{T}) = PSFFile(0)
 
 #Exception generators (TODO: Define exception types):
-NotSuportedError(msg::ASCIIString) = "Not yet supported: $msg."
+NotSuportedError(msg::String) = "Not yet supported: $msg."
 IncorrectChunk(chunktype::Integer) = "Incorrect Chunk: $chunktype"
 
 
@@ -276,7 +276,7 @@ chunkid{T<:Section}(::Type{T}) = 21
 #From: Property::deserialize
 function propertytype(chunktype::Int)
 	if 33 == chunktype
-		return ASCIIString
+		return String
 	elseif 34 == chunktype
 		return Int32
 	elseif 35 == chunktype
@@ -396,11 +396,11 @@ datasize(ref::DataTypeRef, tsection::TypeSection) =
 	get_datatype(ref, tsection)._datasize
 
 #GroupDef::get_child / GroupDef::get_child_index
-get_child(grp::GroupDef, name::ASCIIString) = grp.childlist[grp.namemap[name]]
+get_child(grp::GroupDef, name::String) = grp.childlist[grp.namemap[name]]
 
 #Container::get_child
 #TraceSection/TypeSection
-get_child(section::IndexedSection, name::ASCIIString) = section.childlist[section.namemap[name]]
+get_child(section::IndexedSection, name::String) = section.childlist[section.namemap[name]]
 
 #IndexedContainer::get_child
 get_child(section::IndexedSection, id::Int) = section.idmap[id]
@@ -419,7 +419,7 @@ function validate(r::DataReader)
 	seek(r.io, r.filesize-12)
 	nb = readbytes!(buf, r.io, UInt8, nb=length(STAMP))
 
-	if nb != length(STAMP) || bytestring(buf) != "Clarissa"
+	if nb != length(STAMP) || String(buf) != "Clarissa"
 		throw("Incomplete/corrupt file.")
 	end
 end

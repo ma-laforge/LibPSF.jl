@@ -30,7 +30,7 @@ get_sweep_npoints(reader::DataReader) = #Throws error if no npoints
 
 #SweepSection::get_names
 function get_names(section::SweepSection)
-	result = ASCIIString[]
+	result = String[]
 	for child in section.childlist
 		push!(result, child.name)
 	end
@@ -40,7 +40,7 @@ end
 
 #Container::get_names
 function get_names(grp::GroupDef)
-	result = ASCIIString[]
+	result = String[]
 	for child in grp.childlist
 		push!(result, child.name)
 	end
@@ -49,7 +49,7 @@ end
 
 #TraceSection::get_names
 function get_names(section::TraceSection)
-	result = ASCIIString[]
+	result = String[]
 	for child in section.childlist
 		if typeof(child) <: GroupDef
 			append!(result, get_names(child))
@@ -62,7 +62,7 @@ end
 
 #Container::get_names
 function get_names(v::ValueSectionNonSweep)
-	result = ASCIIString[]
+	result = String[]
 	for child in v.childlist
 		push!(result, child.name)
 	end
@@ -85,7 +85,7 @@ function get_sweep_param_names(reader::DataReader)
 	if !isnull(reader.sweeps)
 		return get_names(get(reader.sweeps))
 	else
-		return ASCIIString[]
+		return String[]
 	end
 end
 
@@ -115,7 +115,7 @@ function get_sweep_values(reader::DataReader)
 end
 
 #TraceSection::get_trace_by_name
-function get_trace_by_name(section::TraceSection, signame::ASCIIString)
+function get_trace_by_name(section::TraceSection, signame::String)
 	try
 		return get_child(section, signame)::DataTypeRef #Ensure correct type
 	catch e
@@ -130,7 +130,7 @@ end
 
 #PSFDataSet::get_signal_vector / PSFFile::get_values
 #Main code from: ValueSectionSweep::get_values
-function get_signal_vector(reader::DataReader, signame::ASCIIString)
+function get_signal_vector(reader::DataReader, signame::String)
 	if isnull(reader.sweepvalues)
 		return nothing
 	end
@@ -144,7 +144,7 @@ end
 
 #PSFDataSet::get_signal_scalar / PSFFile::get_value
 #Main code from: ValueSectionNonSweep::get_value
-function get_signal_scalar(reader::DataReader, signame::ASCIIString)
+function get_signal_scalar(reader::DataReader, signame::String)
 	if isnull(reader.nonsweepvalues)
 		throw("No non-sweep values")
 	end
@@ -154,7 +154,7 @@ function get_signal_scalar(reader::DataReader, signame::ASCIIString)
 end
 
 #PSFDataSet::get_signal
-function get_signal(reader::DataReader, signame::ASCIIString)
+function get_signal(reader::DataReader, signame::String)
 	if is_swept(reader)
 		vec = get_signal_vector(reader, signame)
 #=
@@ -176,7 +176,7 @@ end
 ===============================================================================#
 Base.names(reader::DataReader) = get_signal_names(reader)
 readsweep(reader::DataReader) = get_sweep_values(reader)
-Base.read(reader::DataReader, signame::ASCIIString) = get_signal(reader, signame)
+Base.read(reader::DataReader, signame::String) = get_signal(reader, signame)
 
 
 #==Open/close/read functions

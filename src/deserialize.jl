@@ -23,10 +23,10 @@ deserialize(r::DataReader, ::Type{Float64}) = read(r, Float64)
 #This is probably not used
 
 #PSFStringScalar::deserialize
-function deserialize(r::DataReader, ::Type{ASCIIString})
+function deserialize(r::DataReader, ::Type{String})
 	len = read(r, Int32)
 	data = read(r.io, UInt8, len)
-	value = bytestring(data)
+	value = String(data)
 
 	#Align to 32-bit boundary:
 	rmg = (4-len) & 3
@@ -79,7 +79,7 @@ function deserialize(r::DataReader, child::Property)
 		throw(IncorrectChunk(chunktype))
 	end
 
-	child.name = deserialize(r, ASCIIString)
+	child.name = deserialize(r, String)
 
 	ptype = propertytype(chunktype)
 	child.value = deserialize(r, ptype)
@@ -124,7 +124,7 @@ end
 function deserialize(r::DataReader, child::DataTypeDef)
 	deserialize_chunk(r, DataTypeDef)
 	child.id = read(r, Int32)
-	child.name = deserialize(r, ASCIIString)
+	child.name = deserialize(r, String)
 	arraytype = read(r, Int32)
 	child.datatypeid = read(r, Int32)
 
@@ -159,7 +159,7 @@ end
 function deserialize(r::DataReader, child::DataTypeRef)
 	deserialize_chunk(r, DataTypeRef)
 	child.id = read(r, Int32)
-	child.name = deserialize(r, ASCIIString)
+	child.name = deserialize(r, String)
 	child.datatypeid = read(r, Int32)
 	child.properties = deserialize(r, PropertyBlock)
 	return child
@@ -179,7 +179,7 @@ end
 function deserialize(r::DataReader, child::NonSweepValue)
 	deserialize_chunk(r, NonSweepValue)
 	child.id = read(r, Int32)
-	child.name = deserialize(r, ASCIIString)
+	child.name = deserialize(r, String)
 	child.valuetypeid = read(r, Int32)
 
 	def = get_typedef(get(r.types), child.valuetypeid)
@@ -197,7 +197,7 @@ end
 function deserialize(r::DataReader, child::GroupDef)
 	deserialize_chunk(r, GroupDef)
 	child.id = read(r, Int32)
-	child.name = deserialize(r, ASCIIString)
+	child.name = deserialize(r, String)
 
 	child.nchildren = read(r, Int32)
 	#TODO: resize in a single call instead of pushing?
