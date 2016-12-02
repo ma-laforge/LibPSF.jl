@@ -182,7 +182,7 @@ Base.read(reader::DataReader, signame::String) = get_signal(reader, signame)
 #==Open/close/read functions
 ===============================================================================#
 #PSFFile::open
-function _open(filepath::AbstractString)
+function _open(filepath::String)
 	io = open(filepath)
 	reader = DataReader(io, filepath)
 	seekend(io)

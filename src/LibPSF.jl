@@ -15,7 +15,7 @@ export readsweep
 
 #==Un-"exported" symbols
 ================================================================================
-	_open(filepath::AbstractString)::DataReader
+	_open(filepath::String)::DataReader
 ==#
 
 #="Base" LibPSF functions
@@ -24,9 +24,9 @@ export readsweep
 	get_sweep_param_names
 	get_sweep_npoints
 	get_sweep_values
-	get_signal_vector(reader::DataReader, signame::ASCIIString)
-	get_signal_scalar(reader::DataReader, signame::ASCIIString)
-	get_signal(reader::DataReader, signame::ASCIIString)
+	get_signal_vector(reader::DataReader, signame::String)
+	get_signal_scalar(reader::DataReader, signame::String)
+	get_signal(reader::DataReader, signame::String)
 =#
 
 
@@ -34,7 +34,7 @@ export readsweep
 ================================================================================
 #Already in base:
 	Base.names(reader::DataReader)
-	Base.read(reader::DataReader, signame::ASCIIString)
+	Base.read(reader::DataReader, signame::String)
 ==#
 
 end #LibPSF

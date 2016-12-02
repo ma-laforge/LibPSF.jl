@@ -198,7 +198,7 @@ ValueSectionSweep() = ValueSectionSweep(SectionInfo(), 0)
 #Replaces PSFDataset/PSFFile:
 type DataReader
 	io::IOStream
-	filepath::AbstractString #Informative only
+	filepath::String #Informative only
 	properties::PropDict
 	types::Nullable{TypeSection}
 	sweeps::Nullable{SweepSection}
@@ -207,7 +207,7 @@ type DataReader
 	nonsweepvalues::Nullable{ValueSectionNonSweep}
 	filesize::Int
 end
-function DataReader(io::IOStream, filepath::AbstractString="")
+function DataReader(io::IOStream, filepath::String="")
 	return DataReader(io, filepath, PropDict(), nothing, nothing,
 		nothing, nothing, nothing, 0)
 end

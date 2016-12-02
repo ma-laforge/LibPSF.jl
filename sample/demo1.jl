@@ -7,14 +7,14 @@ include("importLibPSFC.jl") #To access file data
 
 #==Input data
 ===============================================================================#
-sampledata(filename::AbstractString) = joinpath(LibPSFC.rootpath, "core/data", filename)
+sampledata(filename::String) = joinpath(LibPSFC.rootpath, "core/data", filename)
 sepline = "---------------------------------------------------------------------"
 printsep() = println(sepline)
 
 
 #==Tests on various file types
 ===============================================================================#
-function testfileaccess(path::AbstractString)
+function testfileaccess(path::String)
 	println("\n\nfile: $path")
 	printsep()
 	reader = LibPSF._open(path)
