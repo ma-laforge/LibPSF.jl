@@ -17,8 +17,8 @@ type SweepValue{ID} #ID: identifies type of sweep (windowed/simple)
 end
 (::Type{SweepValue{ID}}){ID}() = SweepValue{ID}(Vector[], 0, "", 0, [])
 
-typealias SweepValueWindowed SweepValue{:WND}
-typealias SweepValueSimple SweepValue{:SIMPLE}
+const SweepValueWindowed = SweepValue{:WND}
+const SweepValueSimple = SweepValue{:SIMPLE}
 
 #==Type identification functions
 ===============================================================================#

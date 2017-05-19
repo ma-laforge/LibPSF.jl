@@ -37,25 +37,25 @@ immutable DE{T}; end; #Dispatchable element
 DE(v::Int) = DE{v}();
 
 #Dictionary used to describe PSF properties:
-typealias PropDict Dict{String, Any}
+const PropDict = Dict{String, Any}
 
-abstract Struct #Dummy type used to dispatch function calls
+abstract type Struct end #Dummy type used to dispatch function calls
 
 #Structure used to return Struct data.
-typealias StructDict Dict{String, Any}
+const StructDict = Dict{String, Any}
 
 #Basic value mapping types:
-typealias TraceIDOffsetMap Dict{Int, Int}
-typealias NameIdMap Dict{String, Int} #Maps string to array index
-typealias NameIndexMap Dict{String, Int} #Maps string to array index ?REDUNDANT
+const TraceIDOffsetMap = Dict{Int, Int}
+const NameIdMap = Dict{String, Int} #Maps string to array index
+const NameIndexMap = Dict{String, Int} #Maps string to array index ?REDUNDANT
 
-abstract Chunk #Basically means "Element" of a PSF file
-abstract Container #<: Chunk #Has a Vector{Chunk}.
+abstract type Chunk end #Basically means "Element" of a PSF file
+abstract type Container end #<: Chunk #Has a Vector{Chunk}.
 
-typealias ChunkFilter Vector{Chunk} #Originally "Filter"
+const ChunkFilter = Vector{Chunk} #Originally "Filter"
 
 #Chunk mapping
-typealias IdMap Dict{Int, Chunk}
+const IdMap = Dict{Int, Chunk}
 
 #Basic PSF file elements
 #-------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ GroupDef(psf::PSFFile) = GroupDef(0, "", 0, DataTypeRef[], TraceIDOffsetMap(), N
 
 #PSF file sections
 #-------------------------------------------------------------------------------
-abstract Section <: Container
+abstract type Section <: Container end
 
 type SectionInfo
 	offset::UInt32
@@ -164,12 +164,12 @@ end
 	IndexedSection{ID}(info, Chunk[], IdMap(), NameIndexMap())
 (::Type{IndexedSection{ID}}){ID}() = IndexedSection{ID}(SectionInfo())
 
-typealias HeaderSection SimpleSection{SECTION_HEADER}
-typealias SweepSection SimpleSection{SECTION_SWEEP}
+const HeaderSection = SimpleSection{SECTION_HEADER}
+const SweepSection = SimpleSection{SECTION_SWEEP}
 
-typealias TypeSection IndexedSection{SECTION_TYPE}
-typealias TraceSection IndexedSection{SECTION_TRACE}
-typealias ValueSectionNonSweep IndexedSection{SECTION_VALUE}
+const TypeSection = IndexedSection{SECTION_TYPE}
+const TraceSection = IndexedSection{SECTION_TRACE}
+const ValueSectionNonSweep = IndexedSection{SECTION_VALUE}
 
 Section(::DE{SECTION_TYPE}, info::SectionInfo) = TypeSection(deepcopy(info))
 Section(::DE{SECTION_TRACE}, info::SectionInfo) = TraceSection(deepcopy(info))
