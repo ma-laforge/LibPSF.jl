@@ -33,7 +33,7 @@ const TYPEID_STRUCT = 16
 
 #==Main Types
 ===============================================================================#
-immutable DE{T}; end; #Dispatchable element
+struct DE{T}; end; #Dispatchable element
 DE(v::Int) = DE{v}();
 
 #Dictionary used to describe PSF properties:
@@ -61,30 +61,30 @@ const IdMap = Dict{Int, Chunk}
 #-------------------------------------------------------------------------------
 
 #Indicies... types used for dispatching:
-immutable Index; end
-immutable TraceIndex; end
+struct Index; end
+struct TraceIndex; end
 
-type ZeroPad <: Chunk
+mutable struct ZeroPad <: Chunk
 end
 
-type Property <: Chunk
+mutable struct Property <: Chunk
 	name::String
 	value::Any #Scalar value
 end
 Property() = Property("", nothing)
 
 #PSFFile placeholder structure... trying to change API not to need this.
-type PSFFile
+mutable struct PSFFile
 	something::Int
 end
 
-type PropertyBlock
+mutable struct PropertyBlock
 	prop::PropDict
 end
 PropertyBlock() = PropertyBlock(PropDict())
 
 #Describes/names a data type:
-type DataTypeDef <: Chunk
+mutable struct DataTypeDef <: Chunk
 	id::Int
 	name::String
 	datatypeid::Int
@@ -94,7 +94,7 @@ type DataTypeDef <: Chunk
 end
 DataTypeDef() = DataTypeDef(0, "", 0, PropertyBlock(), StructDef(0), 0)
 
-type StructDef
+mutable struct StructDef
 	childlist::Vector{DataTypeDef}
 	_datasize::Int
 end
@@ -102,7 +102,7 @@ StructDef(_datasize::Int) = StructDef(DataTypeDef[], _datasize)
 StructDef() = StructDef(0)
 
 #Points to a definition of a data type:
-type DataTypeRef <: Chunk
+mutable struct DataTypeRef <: Chunk
 	id::Int
 	name::String
 	datatypeid::Int
@@ -112,7 +112,7 @@ type DataTypeRef <: Chunk
 end
 DataTypeRef(psf::PSFFile) = DataTypeRef(0, "", 0, PropertyBlock(), StructDef(0), psf)
 
-type NonSweepValue <: Chunk
+mutable struct NonSweepValue <: Chunk
 	id::Int
 	name::String
 	valuetypeid::Int
@@ -125,7 +125,7 @@ NonSweepValue(psf::PSFFile) = NonSweepValue(0, "", 0, 0, PropertyBlock(), psf)
 
 #PSF groups (Collects PSF sweep values.  Think each group represents a sweep.)
 #-------------------------------------------------------------------------------
-type GroupDef <: Chunk
+mutable struct GroupDef <: Chunk
 	id::Int
 	name::String
 	nchildren::Int
@@ -140,13 +140,13 @@ GroupDef(psf::PSFFile) = GroupDef(0, "", 0, DataTypeRef[], TraceIDOffsetMap(), N
 #-------------------------------------------------------------------------------
 abstract type Section <: Container end
 
-type SectionInfo
+mutable struct SectionInfo
 	offset::UInt32
 	size::Int
 end
 SectionInfo() = SectionInfo(0,0)
 
-immutable SimpleSection{ID} <: Section #Called "SimpleContainer"
+struct SimpleSection{ID} <: Section #Called "SimpleContainer"
 	info::SectionInfo
 	childlist::Vector{Chunk}
 end
@@ -154,7 +154,7 @@ end
 	SimpleSection{ID}(info, Chunk[])
 (::Type{SimpleSection{ID}}){ID}() = SimpleSection{ID}(SectionInfo(), Chunk[])
 
-immutable IndexedSection{ID} <: Section #Called "IndexedContainer"
+struct IndexedSection{ID} <: Section #Called "IndexedContainer"
 	info::SectionInfo
 	childlist::Vector{Chunk}
 	idmap::IdMap
@@ -176,7 +176,7 @@ Section(::DE{SECTION_TRACE}, info::SectionInfo) = TraceSection(deepcopy(info))
 Section{V}(::DE{V}, info::SectionInfo) = SimpleSection{V}(deepcopy(info))
 Section(v::Int, info::SectionInfo) = Section(DE(v), info)
 
-type ValueSectionSweep <: Section
+mutable struct ValueSectionSweep <: Section
 	info::SectionInfo
 	windowsize::Int
 #	childlist::Vector{Chunk} #Don't see this...
@@ -196,7 +196,7 @@ ValueSectionSweep() = ValueSectionSweep(SectionInfo(), 0)
 #PSF reader: Main object
 #-------------------------------------------------------------------------------
 #Replaces PSFDataset/PSFFile:
-type DataReader
+mutable struct DataReader
 	io::IOStream
 	filepath::String #Informative only
 	properties::PropDict

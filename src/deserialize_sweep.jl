@@ -8,7 +8,7 @@
 #PSF sweep accessors
 #-------------------------------------------------------------------------------
 #Used to extract data vectors:
-type SweepValue{ID} #ID: identifies type of sweep (windowed/simple)
+mutable struct SweepValue{ID} #ID: identifies type of sweep (windowed/simple)
 	vectorlist::Vector{Vector}
 	id::Int
 	name::String
