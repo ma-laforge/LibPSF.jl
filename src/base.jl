@@ -36,6 +36,9 @@ const TYPEID_STRUCT = 16
 struct DE{T}; end; #Dispatchable element
 DE(v::Int) = DE{v}();
 
+#Can be nothing:
+const _Nullable{T} = Union{T, Nothing}
+
 #Dictionary used to describe PSF properties:
 const PropDict = Dict{String, Any}
 
@@ -150,9 +153,9 @@ struct SimpleSection{ID} <: Section #Called "SimpleContainer"
 	info::SectionInfo
 	childlist::Vector{Chunk}
 end
-(::Type{SimpleSection{ID}}){ID}(info::SectionInfo) =
+(::Type{SimpleSection{ID}})(info::SectionInfo) where ID =
 	SimpleSection{ID}(info, Chunk[])
-(::Type{SimpleSection{ID}}){ID}() = SimpleSection{ID}(SectionInfo(), Chunk[])
+(::Type{SimpleSection{ID}})() where ID = SimpleSection{ID}(SectionInfo(), Chunk[])
 
 struct IndexedSection{ID} <: Section #Called "IndexedContainer"
 	info::SectionInfo
@@ -160,9 +163,9 @@ struct IndexedSection{ID} <: Section #Called "IndexedContainer"
 	idmap::IdMap
 	namemap::NameIndexMap
 end
-(::Type{IndexedSection{ID}}){ID}(info::SectionInfo) =
+(::Type{IndexedSection{ID}})(info::SectionInfo) where ID =
 	IndexedSection{ID}(info, Chunk[], IdMap(), NameIndexMap())
-(::Type{IndexedSection{ID}}){ID}() = IndexedSection{ID}(SectionInfo())
+(::Type{IndexedSection{ID}})() where ID = IndexedSection{ID}(SectionInfo())
 
 const HeaderSection = SimpleSection{SECTION_HEADER}
 const SweepSection = SimpleSection{SECTION_SWEEP}
@@ -173,7 +176,7 @@ const ValueSectionNonSweep = IndexedSection{SECTION_VALUE}
 
 Section(::DE{SECTION_TYPE}, info::SectionInfo) = TypeSection(deepcopy(info))
 Section(::DE{SECTION_TRACE}, info::SectionInfo) = TraceSection(deepcopy(info))
-Section{V}(::DE{V}, info::SectionInfo) = SimpleSection{V}(deepcopy(info))
+Section(::DE{V}, info::SectionInfo) where V = SimpleSection{V}(deepcopy(info))
 Section(v::Int, info::SectionInfo) = Section(DE(v), info)
 
 mutable struct ValueSectionSweep <: Section
@@ -200,11 +203,11 @@ mutable struct DataReader
 	io::IOStream
 	filepath::String #Informative only
 	properties::PropDict
-	types::Nullable{TypeSection}
-	sweeps::Nullable{SweepSection}
-	traces::Nullable{TraceSection}
-	sweepvalues::Nullable{ValueSectionSweep}
-	nonsweepvalues::Nullable{ValueSectionNonSweep}
+	types::_Nullable{TypeSection}
+	sweeps::_Nullable{SweepSection}
+	traces::_Nullable{TraceSection}
+	sweepvalues::_Nullable{ValueSectionSweep}
+	nonsweepvalues::_Nullable{ValueSectionNonSweep}
 	filesize::Int
 end
 function DataReader(io::IOStream, filepath::String="")
@@ -224,7 +227,7 @@ end
 
 #==More constructors
 ===============================================================================#
-PSFFile{T<:Section}(::Type{T}) = PSFFile(0)
+PSFFile(::Type{T}) where T<:Section = PSFFile(0)
 
 #Exception generators (TODO: Define exception types):
 NotSuportedError(msg::String) = "Not yet supported: $msg."
@@ -271,7 +274,7 @@ chunkid(::Type{Index}) = 19
 chunkid(::Type{TraceIndex}) = 19
 chunkid(::Type{ZeroPad}) = 20
 
-chunkid{T<:Section}(::Type{T}) = 21
+chunkid(::Type{T}) where T<:Section = 21
 
 #From: Property::deserialize
 function propertytype(chunktype::Int)
@@ -288,13 +291,13 @@ end
 propertytype(chunktype::Integer) = propertytype(Int(chunktype))
 
 
-ischunk{T}(chunktype::Int, ::Type{T}) = throw("Not supported: ischunk($chunktype, $T)")
-ischunk{T<:Chunk}(chunktype::Int, ::Type{T}) = chunkid(T)==chunktype
+ischunk(chunktype::Int, ::Type{T}) where T = throw("Not supported: ischunk($chunktype, $T)")
+ischunk(chunktype::Int, ::Type{T}) where T<:Chunk = (chunkid(T)==chunktype)
 #static Property::ischunk
 function ischunk(chunktype::Int, ::Type{Property})
 	return (chunktype >= 33) && (chunktype <= 35)
 end
-ischunk{T}(chunktype::Integer, ::Type{T}) = ischunk(Int(chunktype), T)
+ischunk(chunktype::Integer, ::Type{T}) where T = ischunk(Int(chunktype), T)
 
 
 #==Factories
@@ -375,8 +378,8 @@ function child_factory(chunktype::Int, ::Type{StructDef})
 	end
 end
 
-child_factory{T}(chunktype::Int, ::Type{T}) = throw(ArgumentError("child_factory($chunktype, $T)"))
-child_factory{T}(chunktype::Integer, ::Type{T}) = child_factory(Int(chunktype), T)
+child_factory(chunktype::Int, ::Type{T}) where T = throw(ArgumentError("child_factory($chunktype, $T)"))
+child_factory(chunktype::Integer, ::Type{T}) where T = child_factory(Int(chunktype), T)
 
 
 #==Accessors
@@ -414,7 +417,7 @@ end
 ===============================================================================#
 #PSFFile::validate
 function validate(r::DataReader)
-	const STAMP = "Clarissa"
+	STAMP = "Clarissa" #WANTCONST
 	buf = Array(UInt8, length(STAMP))
 	seek(r.io, r.filesize-12)
 	nb = readbytes!(buf, r.io, UInt8, nb=length(STAMP))
@@ -427,10 +430,10 @@ end
 #==Read functions
 ===============================================================================#
 #GET_INT32(buf)
-Base.read{T<:Integer}(r::DataReader, ::Type{T}) = ntoh(read(r.io, T))
+Base.read(r::DataReader, ::Type{T}) where T<:Integer = ntoh(read(r.io, T))
 
 #PSFInt8Scalar::deserialize
-function Base.read{T<:Union{UInt8,Int8}}(r::DataReader, ::Type{T})
+function Base.read(r::DataReader, ::Type{T}) where T<:Union{UInt8,Int8}
 	data = read(r.io, UInt8, 4)
 	return data[4]
 end

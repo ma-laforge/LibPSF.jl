@@ -71,10 +71,10 @@ end
 
 #PSFDataSet::get_signal_names/PSFFile::get_names
 function get_signal_names(reader::DataReader)
-	if !isnull(reader.traces)
-		get_names(get(reader.traces))
-	elseif !isnull(reader.nonsweepvalues)
-		get_names(get(reader.nonsweepvalues))
+	if reader.traces != nothing
+		get_names(reader.traces)
+	elseif reader.nonsweepvalues != nothing
+		get_names(reader.nonsweepvalues)
 	else
 		throw("No names found.")
 	end
@@ -82,8 +82,8 @@ end
 
 #PSFDataSet::get_sweep_param_names/PSFFile::get_param_names
 function get_sweep_param_names(reader::DataReader)
-	if !isnull(reader.sweeps)
-		return get_names(get(reader.sweeps))
+	if reader.sweeps != nothing
+		return get_names(reader.sweeps)
 	else
 		return String[]
 	end
@@ -92,12 +92,12 @@ end
 #Get values from a list of Chunk elements (filter)
 #ValueSectionSweep::get_values
 function get_values(reader::DataReader, filter::ChunkFilter)
-	value = new_value(get(reader.sweepvalues))
+	value = new_value(reader.sweepvalues)
 	n = reader.properties["PSF sweep points"]
 	windowoffset = 0
 
 	#TODO: move seek inside deserialize??
-	seek(reader.io, get(reader.sweepvalues).curpos)
+	seek(reader.io, reader.sweepvalues.curpos)
 	return deserialize(reader, value, n, windowoffset, filter)
 end
 
@@ -105,7 +105,7 @@ end
 #PSFDataSet::get_sweep_values / PSFFile::get_param_values
 #Main code from: ValueSectionSweep::get_param_values
 function get_sweep_values(reader::DataReader)
-	if isnull(reader.sweepvalues)
+	if nothing == reader.sweepvalues
 		return nothing
 	end
 	filter = ChunkFilter() #No y-values?
@@ -131,12 +131,12 @@ end
 #PSFDataSet::get_signal_vector / PSFFile::get_values
 #Main code from: ValueSectionSweep::get_values
 function get_signal_vector(reader::DataReader, signame::String)
-	if isnull(reader.sweepvalues)
+	if nothing == reader.sweepvalues
 		return nothing
 	end
 	#Create filter for retrieving the trace with correct name
 	filter = ChunkFilter()
-	push!(filter, get_trace_by_name(get(reader.traces), signame))
+	push!(filter, get_trace_by_name(reader.traces, signame))
 	v = get_values(reader, filter)
 	#No need to clear values (v will go out of scope)
 	return v.vectorlist[1]
@@ -145,11 +145,11 @@ end
 #PSFDataSet::get_signal_scalar / PSFFile::get_value
 #Main code from: ValueSectionNonSweep::get_value
 function get_signal_scalar(reader::DataReader, signame::String)
-	if isnull(reader.nonsweepvalues)
+	if nothing == reader.nonsweepvalues
 		throw("No non-sweep values")
 	end
 	#Assert type:
-	val = get_child(get(reader.nonsweepvalues), signame)::NonSweepValue
+	val = get_child(reader.nonsweepvalues, signame)::NonSweepValue
 	return val.value
 end
 

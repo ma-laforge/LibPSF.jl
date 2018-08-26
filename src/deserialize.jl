@@ -25,12 +25,14 @@ deserialize(r::DataReader, ::Type{Float64}) = read(r, Float64)
 #PSFStringScalar::deserialize
 function deserialize(r::DataReader, ::Type{String})
 	len = read(r, Int32)
-	data = read(r.io, UInt8, len)
+	data = Array{UInt8}(undef, (len,))
+	read!(r.io, data)
 	value = String(data)
 
 	#Align to 32-bit boundary:
 	rmg = (4-len) & 3
-	data = read(r.io, UInt8, rmg)
+	data = Array{UInt8}(undef, (rmg,)) #Dummy buffer
+	read!(r.io, data)
 	return value
 end
 
@@ -182,7 +184,7 @@ function deserialize(r::DataReader, child::NonSweepValue)
 	child.name = deserialize(r, String)
 	child.valuetypeid = read(r, Int32)
 
-	def = get_typedef(get(r.types), child.valuetypeid)
+	def = get_typedef(r.types, child.valuetypeid)
 		T = psfdata_type(def)
 	if T <: Struct
 		child.value = deserialize(r, def.structdef, Struct)
@@ -231,7 +233,7 @@ end
 
 #SimpleContainer::deserialize
 #TODO: rename??
-function deserialize_container{T<:Section}(r::DataReader, section::T)
+function deserialize_container(r::DataReader, section::T) where T<:Section
 	seek(r.io, section.info.offset)
 	deserialize_chunk(r, T)
 	endpos = read(r, UInt32)
@@ -249,7 +251,7 @@ function deserialize_container{T<:Section}(r::DataReader, section::T)
 end
 
 #IndexedContainer::deserialize
-function deserialize_container{T<:IndexedSection}(r::DataReader, section::T)
+function deserialize_container(r::DataReader, section::T) where T<:IndexedSection
 	seek(r.io, section.info.offset)
 	deserialize_chunk(r, T)
 	endpos = read(r, UInt32)

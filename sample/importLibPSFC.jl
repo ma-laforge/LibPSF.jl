@@ -6,7 +6,7 @@ catch e
 msg = "This sample requires data installed in the LibPSFC module."
 msg *= "\nTo continue demo, install with the following:\n\n"
 msg *= "    Pkg.clone(\"git://github.com/ma-laforge/LibPSFC.jl\")"
-info(msg)
+@info(msg)
 println();println()
 rethrow(e)
 end

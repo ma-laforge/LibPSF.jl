@@ -1,5 +1,10 @@
 #LibPSF: A pure Julia implementation of LibPSF
 #-------------------------------------------------------------------------------
+#=
+TAGS:
+	#WANTCONST, HIDEWARN_0.7
+=#
+
 module LibPSF
 
 include("base.jl")
