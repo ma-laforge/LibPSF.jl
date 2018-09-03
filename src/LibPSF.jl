@@ -1,5 +1,6 @@
 #LibPSF: A pure Julia implementation of LibPSF
 #-------------------------------------------------------------------------------
+__precompile__(true)
 #=
 TAGS:
 	#WANTCONST, HIDEWARN_0.7
