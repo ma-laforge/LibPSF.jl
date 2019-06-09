@@ -37,7 +37,7 @@ LibPSF.jl does not currently support all the functionnality of the original libp
 
 Extensive compatibility testing of LibPSF.jl has not been performed.  The module has been tested using the following environment(s):
 
- - Linux / Julia-0.7.0 (64-bit)
+ - Linux / Julia-1.1.1 (64-bit)
 
 #### Repository versions:
 
