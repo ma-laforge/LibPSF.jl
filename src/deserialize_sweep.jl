@@ -169,11 +169,22 @@ function deserialize(r::DataReader, value::SweepValueWindowed, totaln::Int, wind
 	end
 
 	i = 0
+	testtype = 16
 	while i < totaln
-		deserialize_chunk(r, SweepValueWindowed)
+		if i == 0
+			testtype = ntoh(read(r.io, UInt32))
+		end
+		if(testtype == 16 && i != 0)
+			read(r,UInt32)
+		elseif(testtype == 20)
+			deserialize(r,ZeroPad)
+			read(r, Int32)
 
+		end
+	
 		#Read number of points in this window (n)
-		tmp = read(r, Int32)
+		tmp = read(r, UInt32)
+		
 		windowleft = tmp>>16 #Is this the rest of the number? Does it have another meaning?
 		n = tmp & 0xFFFF #Number of data points in window (lower 32 bits)
 
@@ -184,11 +195,13 @@ function deserialize(r::DataReader, value::SweepValueWindowed, totaln::Int, wind
 		VT = psfdata_type(paramtype, r.types)
 
 		#x-value vector?
-		deserialize_data(r, value.paramvalues, pwinstart .+ (1:n), VT)
+		testtype = deserialize_data(r, value.paramvalues, pwinstart .+ (1:n), VT)
+
 
 		startpos = position(r.io) #Save start of trace values pointer in buffer (const char *valuebuf)
 		valuesection = r.sweepvalues
 
+		
 		for j in 1:length(filter) #Also length of vectorlist
 			typeref = filter[j]::DataTypeRef #Validate type
 			VT = psfdata_type(typeref, r.types)
@@ -197,9 +210,11 @@ function deserialize(r::DataReader, value::SweepValueWindowed, totaln::Int, wind
 			vec = value.vectorlist[j]
 
 			deserialize_data(r, vec, i .+ (1:n), VT)
-		end
 
+		end
 		#Advance buffer pointer to end of trace values
+		test = seek(r.io, startpos + ntraces * windowsize)
+		testtype = ntoh(read(r.io, UInt32))
 		seek(r.io, startpos + ntraces * windowsize)
 		i += n
 	end
