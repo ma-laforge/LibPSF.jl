@@ -170,12 +170,12 @@ function deserialize(r::DataReader, value::SweepValueWindowed, totaln::Int, wind
 
 	i = 0
 	while i < totaln
-		deserialize_chunk(r, SweepValueWindowed)
+		deserialize_chunkpadded(r, SweepValueWindowed, 0==i)
 
 		#Read number of points in this window (n)
 		tmp = read(r, Int32)
 		windowleft = tmp>>16 #Is this the rest of the number? Does it have another meaning?
-		n = tmp & 0xFFFF #Number of data points in window (lower 32 bits)
+		n = tmp & 0xFFFF #Number of data points in window (lower 16 bits)
 
 		windowoffset += 4
 		#Deserialize parameter values from file to parameter vector (paramvalues)

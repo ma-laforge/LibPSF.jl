@@ -55,12 +55,36 @@ function deserialize(r::DataReader, ::Type{PropertyBlock})
 	return result
 end
 
+#ZeroPad::deserialize
+#Skip padded portion found after chunk ID.
+function skippad(r::DataReader, ::Type{ZeroPad})
+	_size = read(r, UInt32)
+	curpos = position(r.io)
+	seek(r.io, curpos+_size)
+end
+
 #Chunk::deserialize
 function deserialize_chunk(r::DataReader, T::Type)
 	testtype = read(r, UInt32)
 	cid = chunkid(T)
 
+	#NOTE: Not convinced possible to get cid=chunkid(T)==-1 (redundant)
 	if cid != -1 && testtype != cid
+		throw(IncorrectChunk(testtype))
+	end
+	return true #This function really ensures we have expected chunk
+end
+
+function deserialize_chunkpadded(r::DataReader, T::Type, isfirst::Bool)
+	testtype = read(r, UInt32)
+	cid = chunkid(T)
+
+	if testtype == cid
+		return true
+	elseif !isfirst && (chunkid(ZeroPad) == testtype)
+		#WARNING: not certain if condition conforms to file format
+		skippad(r, ZeroPad)
+	else
 		throw(IncorrectChunk(testtype))
 	end
 	return true #This function really ensures we have expected chunk
@@ -69,9 +93,7 @@ end
 #ZeroPad::deserialize
 function deserialize(r::DataReader, ::Type{ZeroPad})
 	deserialize_chunk(r, ZeroPad)
-	_size = read(r, UInt32)
-	curpos = position(r.io)
-	seek(r.io, curpos+_size)
+	skippad(r, ZeroPad)
 end
 
 #Property::deserialize
