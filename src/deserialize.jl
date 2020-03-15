@@ -75,15 +75,20 @@ function deserialize_chunk(r::DataReader, T::Type)
 	return true #This function really ensures we have expected chunk
 end
 
-function deserialize_chunkpadded(r::DataReader, T::Type, isfirst::Bool)
-	testtype = read(r, UInt32)
+function deserialize_chunkpadded(r::DataReader, T::Type)
 	cid = chunkid(T)
+	testtype = read(r, UInt32)
+
+	#Add support for zero padding within file:
+	while chunkid(ZeroPad) == testtype
+		#WARNING: Diverges from original LibPSF.
+		#not certain if file format actually allows for padding at each chunk
+		skippad(r, ZeroPad)
+		testtype = read(r, UInt32)
+	end
 
 	if testtype == cid
 		return true
-	elseif !isfirst && (chunkid(ZeroPad) == testtype)
-		#WARNING: not certain if condition conforms to file format
-		skippad(r, ZeroPad)
 	else
 		throw(IncorrectChunk(testtype))
 	end

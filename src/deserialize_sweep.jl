@@ -170,7 +170,7 @@ function deserialize(r::DataReader, value::SweepValueWindowed, totaln::Int, wind
 
 	i = 0
 	while i < totaln
-		deserialize_chunkpadded(r, SweepValueWindowed, 0==i)
+		deserialize_chunkpadded(r, SweepValueWindowed)
 
 		#Read number of points in this window (n)
 		tmp = read(r, Int32)
